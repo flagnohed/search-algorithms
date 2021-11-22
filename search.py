@@ -2,6 +2,14 @@ from collections import deque
 import sys
 import pygame
 import math
+import random
+
+# todo: change to these variables in the code (easier to read)
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GREEN = (0, 0, 255)
+BLUE = (0, 255, 0)
+GREY = (50, 50, 50)
 
 
 class Node:
@@ -90,11 +98,12 @@ def button_clicked(pos, button):
 def main():
     """
     todo:
-    * fix colors
     * add timer
-    * add walls random (make random maze)
     * add text showcasing the length of returned path
     * make a "ring" around the search methods with title "choose algorithm:"
+    * manually create like 5 grids, store them in a text file. Then, when calling on a random maze, take one from that
+    text file. If there is a manually created grid active, choose one of the other 4. If none is active,
+    take from all 5. At the moment only focus on 20x20 grids
     """
     pygame.init()
     w_width = 1000  # x
@@ -104,26 +113,31 @@ def main():
     w = pygame.display.set_mode((w_width + 200, w_height + 200))
     pygame.display.set_caption("Search visualizer")
 
-    size = 20
+    size = 50
     cells_x, cells_y = w_width//size, w_height//size
     grid = create_grid(cells_x, cells_y)
     start_node = None
+    edit_mode = False
+
     # main game loop
     while True:
         # Fix graphics stuff
         w.fill((0, 0, 0))
+        # todo: fix this implementation in the button class instead
+        pygame.draw.line(w, (255, 255, 255), (1000, 0), (1000, 1000))
+        pygame.draw.line(w, (255, 255, 255), (1000, 1000), (0, 1000))
         bfs_button = Button(1050, 650, w, "BFS")
         dfs_button = Button(1050, 750, w, "DFS")
         a_star_button = Button(1050, 850, w, "A*")
         reset_button = Button(1050, 1000, w, "Reset")
         quit_button = Button(1050, 1100, w, "Quit")
+        edit_grid_button = Button(1050, 200, w, "Edit grid")
         w.blit(bfs_button.text, (bfs_button.x + 30, bfs_button.y + 10))
         w.blit(dfs_button.text, (dfs_button.x + 30, dfs_button.y + 10))
         w.blit(a_star_button.text, (a_star_button.x + 30, a_star_button.y + 10))
         w.blit(reset_button.text, (reset_button.x + 30, reset_button.y + 10))
         w.blit(quit_button.text, (quit_button.x + 30, quit_button.y + 10))
-        pygame.draw.line(w, (255, 255, 255), (1000, 0), (1000, 1000))
-        pygame.draw.line(w, (255, 255, 255), (1000, 1000), (0, 1000))
+        w.blit(edit_grid_button.text, (edit_grid_button.x + 10, edit_grid_button.y + 10))
 
         draw_grid(w, size, grid)
         pygame.display.update()
@@ -138,23 +152,27 @@ def main():
                 if pos[0] <= w.get_width() - 200 and pos[1] <= w.get_height() - 200:  # grid clicked
                     x, y = pos[0]//size, pos[1]//size
                     clicked_cell = grid[x][y]
-                    if event.button == 1:  # left click, set start node
-                        start = clicked_cell.is_start
-                        if start:
-                            clicked_cell.is_start = False
-                        else:
-                            if get_start_node(grid) is None:  # cant have multiple start points
-                                clicked_cell.is_start = True
-                                start_node = clicked_cell
-                        pygame.display.update()
-                    elif event.button == 3:  # right click, set target target node
-                        target = clicked_cell.is_target
-                        if target:
-                            clicked_cell.is_target = False
-                        else:
-                            print("Set target node!")
-                            clicked_cell.is_target = True
-                        pygame.display.update()
+                    if not edit_mode:
+                        if event.button == 1:  # left click, set start node
+                            start = clicked_cell.is_start
+                            if start:
+                                clicked_cell.is_start = False
+                            else:
+                                if get_start_node(grid) is None:  # cant have multiple start points
+                                    clicked_cell.is_start = True
+                                    start_node = clicked_cell
+                            pygame.display.update()
+                        elif event.button == 3:  # right click, set target target node
+                            target = clicked_cell.is_target
+                            if target:
+                                clicked_cell.is_target = False
+                            else:
+                                print("Set target node!")
+                                clicked_cell.is_target = True
+                            pygame.display.update()
+                    else:  # edit mode
+                        if event.button == 1:  # left click, place walls freely
+                            clicked_cell.is_wall = True
 
                 elif button_clicked(pos, reset_button):
                     grid = create_grid(cells_x, cells_y)
@@ -182,14 +200,37 @@ def main():
                             print(path_cost)
                 elif button_clicked(pos, quit_button):
                     exit(0)
+                elif button_clicked(pos, edit_grid_button):
+                    # grid = random_grid(cells_x, cells_y)
+                    if edit_mode:
+                        edit_mode = False
+                    else:
+                        edit_mode = True
                 if search_choice:  # if True then some algorithm has run
                     # text at (50, 1050) [search "found a path with length " path_cost!]
+                    # or "SEARCH_METHOD found a path from (x, y) to (z, w) with cost x."
+                    # remove this text at reset and edit.
                     pass
-                # click on reset button:
-                    # grid = create_grid(cells_x, cells_y)
-                    # reset(w, size)
-        # if run button is clicked:
-            # run search
+
+
+def random_grid(cells_x, cells_y):
+    grid = create_grid(cells_x, cells_y)
+    # standard should be 50% walls, 50% empty cells.
+    # first idea: create a list of all the coordinates as tuples
+    # pick grid.width*grid.height/2 random choices from that list (result is still a list)
+    # then loop through that resulting list and place walls in the corresponding positions in the grid
+    all_positions = []
+    n = cells_x * cells_y // 2  # standard should be 50% walls, 50% empty cells.
+    for x in range(cells_x):
+        for y in range(cells_y):
+            all_positions += [(x, y)]
+
+    random_positions = random.sample(all_positions, n)
+    print(random_positions)
+    for coordinate in random_positions:
+        x, y = coordinate
+        grid[x][y].is_wall = True
+    return grid
 
 
 def reset(w, size):
@@ -205,14 +246,17 @@ def draw_grid(w, size, grid):
             x, y = i//size, j//size
 
             square = pygame.Rect(i, j, size, size)
+            if not grid[x][y].is_wall:
+                pygame.draw.rect(w, (255, 255, 255), square, 0)
             if grid[x][y].is_start:
                 pygame.draw.rect(w, (0, 255, 0), square, 0)
             if grid[x][y].is_target:
                 pygame.draw.rect(w, (0, 0, 255), square, 0)
             if grid[x][y].visited:
-                pygame.draw.rect(w, (255, 0, 0), square, 0)
-            if grid[x][y].is_on_path or grid[x][y].current:
-                pygame.draw.rect(w, (255, 255, 255), square, 0)
+                pygame.draw.rect(w, (0, 0, 255), square, 0)
+            if grid[x][y].is_on_path:
+                pygame.draw.rect(w, (0, 255, 0), square, 0)
+
 
             pygame.draw.rect(w, (50, 50, 50), square, 1)  # outline the cells
 
@@ -232,10 +276,10 @@ def graph_search(grid, start, breadth, w, size):  # uninformed search, find a ta
     start.visited = True
     while queue:
         current_node = queue.popleft()  # take next node in queue
-        current_node.current = True  # used for graphics
+        # current_node.current = True  # used for graphics
         draw_grid(w, size, grid)
         pygame.display.update()
-        current_node.current = False
+        # current_node.current = False
         if current_node.is_target:
             return get_path(start, current_node)
         children = current_node.get_children(grid)
@@ -255,31 +299,7 @@ def a_star(grid, start, target, w, size):  # returns the optimal path to target 
     # f = h + g, i.e. f = cost so far + estimated cost to target
     # start's f is already at 0 so we wont have to initialize it
 
-    """
-    open_list := sorted list on node.f
-    closed_list := final path
-    set start.f = 0, start.g = 0 and add start to open_list
-    while open_list not empty:
-        pick node with lowest f
-        if node == target:
-            return get_path(start, node)
-        for child in node.children:
-            child_copy = child
-            child_copy.g = len(get_path(start, child))
-            child_copy.h = heuristic(child, target)
-            child_copy.f = child.g + child.h
-            if child in open_list:
-                if child_copy.f < child.f:
-                    # found better
-                    child = child_copy # update
-            else:
-                open_list += [child_copy]
-
-        closed_list += [node]
-
-    """
     open_list = []
-    closed_list = []
     start.g = 0
     start.h = math.sqrt((target.x - start.x)**2+(target.y - start.y)**2)
     start.f = start.h
@@ -302,6 +322,8 @@ def a_star(grid, start, target, w, size):  # returns the optimal path to target 
                 child.f = temp_g + math.sqrt((target.x - child.x)**2+(target.y - child.y)**2)
                 if child not in open_list:
                     child.visited = True
+                    draw_grid(w, size, grid)
+                    pygame.display.update()
                     open_list += [child]
 
 
