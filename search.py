@@ -95,6 +95,14 @@ def button_clicked(pos, button):
     return button.x <= pos[0] <= button.x + button.width and button.y <= pos[1] <= button.y + button.height
 
 
+def print_walls(grid):
+    walls = []
+    for i in range(len(grid)):
+        for j in range(len(grid[0])):
+            if grid[i][j].is_wall:
+                walls += [(i, j)]
+    print(walls)
+
 def main():
     """
     todo:
@@ -115,7 +123,7 @@ def main():
 
     size = 50
     cells_x, cells_y = w_width//size, w_height//size
-    grid = create_grid(cells_x, cells_y)
+    grid = create_maze(walls1, cells_x, cells_y)
     start_node = None
     edit_mode = False
 
@@ -132,12 +140,16 @@ def main():
         reset_button = Button(1050, 1000, w, "Reset")
         quit_button = Button(1050, 1100, w, "Quit")
         edit_grid_button = Button(1050, 200, w, "Edit grid")
+        maze1_button = Button(50, 1100, w, "Maze 1")
+        maze2_button = Button(200, 1100, w, "Maze 2")
         w.blit(bfs_button.text, (bfs_button.x + 30, bfs_button.y + 10))
         w.blit(dfs_button.text, (dfs_button.x + 30, dfs_button.y + 10))
         w.blit(a_star_button.text, (a_star_button.x + 30, a_star_button.y + 10))
         w.blit(reset_button.text, (reset_button.x + 30, reset_button.y + 10))
         w.blit(quit_button.text, (quit_button.x + 30, quit_button.y + 10))
         w.blit(edit_grid_button.text, (edit_grid_button.x + 10, edit_grid_button.y + 10))
+        w.blit(maze1_button.text, (maze1_button.x + 20, maze1_button.y + 10))
+        w.blit(maze2_button.text, (maze2_button.x + 20, maze2_button.y + 10))
 
         draw_grid(w, size, grid)
         pygame.display.update()
@@ -204,8 +216,15 @@ def main():
                     # grid = random_grid(cells_x, cells_y)
                     if edit_mode:
                         edit_mode = False
+                        print_walls(grid)
                     else:
                         edit_mode = True
+                elif button_clicked(pos, maze1_button):
+                    grid = create_maze(walls1)
+                    search_choice = ""
+                elif button_clicked(pos, maze2_button):
+                    grid = create_maze(walls2)
+                    search_choice = ""
                 if search_choice:  # if True then some algorithm has run
                     # text at (50, 1050) [search "found a path with length " path_cost!]
                     # or "SEARCH_METHOD found a path from (x, y) to (z, w) with cost x."
@@ -327,14 +346,37 @@ def a_star(grid, start, target, w, size):  # returns the optimal path to target 
                     open_list += [child]
 
 
+def create_maze(wall_list, cells_x, cells_y):
+    """Takes a list of tuples with coordinates where walls where put and saves them in a constant maze. """
+    grid = create_grid(cells_x, cells_y)
+    for i, j in wall_list:
+        grid[i][j].is_wall = True
+    return grid
 
 
+walls1 = [(0, 17), (1, 3), (1, 4), (1, 5), (1, 8), (1, 14), (1, 15), (1, 16), (1, 17), (2, 1), (2, 2), (2, 3), (2, 5),
+          (2, 6), (2, 8), (2, 11), (2, 12), (3, 2), (3, 3), (3, 6), (3, 7), (3, 8), (3, 9), (3, 10), (3, 11), (3, 12),
+          (3, 13), (3, 17), (3, 18), (4, 10), (4, 11), (4, 12), (4, 14), (4, 17), (5, 3), (5, 4), (5, 8), (5, 14),
+          (5, 15), (5, 16), (5, 17), (6, 1), (6, 2), (6, 4), (6, 6), (6, 10), (6, 11), (6, 12), (6, 14), (6, 15),
+          (7, 1), (7, 4), (7, 6), (7, 12), (7, 16), (8, 1), (8, 4), (8, 6), (8, 7), (8, 8), (8, 11), (8, 12), (8, 15),
+          (8, 16), (9, 1), (9, 4), (9, 8), (9, 11), (9, 17), (10, 0), (10, 1), (10, 3), (10, 4), (10, 5), (10, 8),
+          (10, 9), (10, 10), (10, 11), (11, 4), (11, 11), (11, 14), (11, 15), (11, 18), (12, 4), (12, 6), (12, 14),
+          (12, 15), (12, 17), (12, 18), (13, 2), (13, 3), (13, 4), (13, 8), (13, 9), (13, 13), (14, 1), (14, 2),
+          (14, 6), (14, 7), (14, 8), (14, 13), (14, 14), (15, 1), (15, 11), (15, 16), (15, 17), (16, 1), (16, 2),
+          (16, 3), (16, 11), (16, 16), (17, 4), (17, 6), (17, 8), (17, 11), (17, 13), (17, 18), (18, 1), (18, 6),
+          (18, 9), (18, 10), (18, 13), (18, 14), (18, 17), (18, 18), (19, 0), (19, 1), (19, 13)]
 
-
-
-
-
-
+walls2 = [(0, 8), (0, 13), (0, 18), (1, 1), (1, 2), (1, 3), (1, 4), (1, 7), (1, 8), (1, 9), (1, 10), (1, 12), (1, 13),
+          (1, 15), (1, 16), (1, 17), (1, 18), (2, 18), (3, 2), (3, 5), (3, 6), (3, 11), (3, 12), (3, 16), (3, 17),
+          (3, 18), (4, 2), (4, 3), (4, 5), (4, 8), (4, 11), (4, 17), (5, 2), (5, 7), (5, 8), (5, 9), (5, 11), (5, 15),
+          (5, 16), (5, 17), (6, 0), (6, 8), (6, 17), (7, 0), (7, 1), (7, 5), (7, 12), (7, 13), (7, 14), (7, 18),
+          (8, 0), (8, 3), (8, 5), (8, 6), (8, 11), (8, 12), (8, 18), (9, 2), (9, 3), (9, 7), (9, 14), (9, 15), (9, 16),
+          (10, 8), (10, 15), (10, 16), (11, 0), (11, 1), (11, 5), (11, 6), (11, 8), (11, 9), (11, 10), (11, 12),
+          (11, 15), (11, 19), (12, 1), (12, 4), (12, 5), (12, 10), (12, 12), (12, 13), (12, 18), (12, 19), (13, 1),
+          (13, 13), (13, 19), (14, 6), (14, 7), (14, 8), (14, 14), (15, 2), (15, 4), (15, 11), (15, 15), (15, 16),
+          (16, 1), (16, 2), (16, 3), (16, 4), (16, 5), (16, 9), (16, 10), (16, 11), (16, 18), (17, 2), (17, 3),
+          (17, 9), (17, 13), (17, 14), (17, 18), (18, 0), (18, 1), (18, 2), (18, 3), (18, 4), (18, 14), (18, 16),
+          (18, 17), (18, 18), (19, 17)]
 
 
 main()
